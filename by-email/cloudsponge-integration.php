@@ -78,36 +78,44 @@ class Cloudsponge_Integration {
 
 		?>
 
-<input type="hidden" id="cloudsponge-emails" name="cloudsponge-emails" value="" />
+		<input type="hidden" id="cloudsponge-emails" name="cloudsponge-emails" value="" />
 
-<?php 
-	
-	if(!$this->deep_links)
-		_e( 'You can also add email addresses <a class="cs_import">from your Address Book</a>.', 'invite-anyone' );
-	else
-	{
-		$sourcesList = self::sources_list();
-		$sourcesDisplay = array();
-		
-		_e( 'You can also add email addresses from one of the following address books:</br>', 'invite-anyone' );
+		<?php if ( ! $this->deep_links ) : ?>
+			<a class="cs_import"><?php esc_html_e( 'You can also add email addresses from your Address Book.', 'invite-anyone' ); ?></a>
+		<?php else : ?>
+			<?php $sourcesList = self::sources_list(); ?>
 
-		foreach($this->sources as $source)
-		{
-			$sourcesDisplay[] = '<a class="cloudsponge-launch" data-cloudsponge-source="'.esc_attr($source).'">'.esc_html($sourcesList[$source]['name']).'</a>';
-		}
-		
-		print implode(", ", $sourcesDisplay);
-	}
+			<?php esc_html_e( 'You can also add email addresses from one of the following address books:', 'invite-anyone' ); ?>
 
-?>
-		<?php
+			<?php
+			$sourcesDisplay = [];
+			foreach ( $this->sources as $source ) {
+				if ( ! isset( $sourcesList[ $source ] ) ) {
+					continue;
+				}
+
+				$sourcesDisplay[] = '<a class="cloudsponge-launch" data-cloudsponge-source="' . esc_attr( $source ) . '">' . esc_html( $sourcesList[ $source ]['name'] ) . '</a>';
+			}
+
+			echo implode( ', ', $sourcesDisplay );
+			
+			?>
+		<?php endif;
 	}
 
 	public static function sources_list() {
+		$sources = get_transient( 'cloudsponge-services' );
+		if ( false === $sources ) {
+			$sources = json_decode( file_get_contents( 'https://api.cloudsponge.com/services.json' ), true );
 
-		$cloudsponge_sourcesJSON = "https://api.cloudsponge.com/services.json";
-		return json_decode( file_get_contents($cloudsponge_sourcesJSON), true);
+			if ( $sources ) {
+				set_transient( 'cloudsponge-services', $sources, HOUR_IN_SECONDS );
+			} else {
+				$sources = [];
+			}
+		}
 
+		return $sources;
 	}
 }
 $cloudsponge_integration = new Cloudsponge_Integration;
